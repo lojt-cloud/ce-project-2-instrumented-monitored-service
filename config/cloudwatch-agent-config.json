@@ -11,7 +11,7 @@
             "file_path": "/opt/auth-service/server.log",
             "log_group_name": "/authservice/app",
             "log_stream_name": "{instance_id}",
-            "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f%z"
+            "timestamp_format": "%Y-%m-%dT%H:%M:%S.%fZ"
           }
         ]
       }
