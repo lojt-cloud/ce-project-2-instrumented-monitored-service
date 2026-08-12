@@ -1,0 +1,72 @@
+[
+  {
+    "AlarmName": "AuthService-FailedLogins-Warning",
+    "AlarmDescription": "Failed login rate is elevated. Could be normal noise or an early attack, worth a look.",
+    "Namespace": "AuthService",
+    "MetricName": "login_failed_total",
+    "Statistic": "Sum",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 10,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmActions": ["${SNS_WARNING_TOPIC_ARN}"]
+  },
+  {
+    "AlarmName": "AuthService-FailedLogins-Critical",
+    "AlarmDescription": "Sustained failed-login spike, strong brute force indicator.",
+    "Namespace": "AuthService",
+    "MetricName": "login_failed_total",
+    "Statistic": "Sum",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 25,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmActions": ["${SNS_CRITICAL_TOPIC_ARN}"]
+  },
+  {
+    "AlarmName": "AuthService-AccountLockout-Critical",
+    "AlarmDescription": "An account was locked due to repeated failed logins. Confirmed attack signature, not just noise.",
+    "Namespace": "AuthService",
+    "MetricName": "account_lockouts_total",
+    "Statistic": "Sum",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 1,
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmActions": ["${SNS_CRITICAL_TOPIC_ARN}"]
+  },
+  {
+    "AlarmName": "AuthService-Latency-Warning",
+    "AlarmDescription": "P95 latency is above normal range.",
+    "Namespace": "AuthService",
+    "MetricName": "api_latency_ms",
+    "ExtendedStatistic": "p95",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 500,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmActions": ["${SNS_WARNING_TOPIC_ARN}"]
+  },
+  {
+    "AlarmName": "AuthService-Latency-Critical",
+    "AlarmDescription": "P95 latency exceeds 1 second, users are noticing.",
+    "Namespace": "AuthService",
+    "MetricName": "api_latency_ms",
+    "ExtendedStatistic": "p95",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 1000,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmActions": ["${SNS_CRITICAL_TOPIC_ARN}"]
+  }
+]
