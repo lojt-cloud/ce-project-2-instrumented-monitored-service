@@ -19,6 +19,6 @@ export AWS_REGION="us-east-1"
 export CLOUDWATCH_NAMESPACE="AuthService"
 export PYTHONUNBUFFERED=1
 
-nohup venv/bin/gunicorn -w 1 -b 0.0.0.0:8080 server:app > server.log 2>&1 &
+nohup venv/bin/gunicorn -w 1 -b 0.0.0.0:8080 server:app > server.log 2>gunicorn-error.log &
 
 echo "auth service started on port 8080"
