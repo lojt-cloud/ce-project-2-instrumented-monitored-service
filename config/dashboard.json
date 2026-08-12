@@ -6,7 +6,7 @@
       "properties": {
         "metrics": [["AuthService", "api_latency_ms", {"stat": "SampleCount", "label": "Requests"}]],
         "view": "singleValue",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Request rate (5 min)",
         "period": 300
       }
@@ -22,7 +22,7 @@
           [{"expression": "(m1+m2)/(m1+m2+m3)*100", "label": "Error rate %", "id": "e1"}]
         ],
         "view": "singleValue",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Error rate %",
         "period": 300
       }
@@ -33,7 +33,7 @@
       "properties": {
         "metrics": [["AuthService", "api_latency_ms", {"stat": "p95", "label": "P95 latency"}]],
         "view": "singleValue",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "P95 latency (ms)",
         "period": 300
       }
@@ -44,7 +44,7 @@
       "properties": {
         "metrics": [["CWAgent", "cpu_usage_active", {"stat": "Average", "label": "CPU %"}]],
         "view": "singleValue",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "CPU utilization",
         "period": 300
       }
@@ -60,7 +60,7 @@
           ["AuthService", "account_lockouts_total", {"stat": "Sum", "label": "New lockouts"}]
         ],
         "view": "timeSeries",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Login outcomes",
         "period": 60,
         "stacked": false
@@ -75,7 +75,7 @@
           ["AuthService", "api_latency_ms", {"stat": "p95", "label": "P95 latency"}]
         ],
         "view": "timeSeries",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Latency",
         "period": 60
       }
@@ -91,7 +91,7 @@
           [{"expression": "(m1+m2)/(m1+m2+m3)*100", "label": "Error rate %", "id": "e1"}]
         ],
         "view": "timeSeries",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Error rate % over time",
         "period": 60
       }
@@ -102,7 +102,7 @@
       "properties": {
         "metrics": [["AuthService", "authenticated_requests_total", {"stat": "Sum", "label": "Authenticated requests"}]],
         "view": "timeSeries",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Authenticated requests",
         "period": 60
       }
@@ -117,7 +117,7 @@
           ["CWAgent", "disk_used_percent", {"stat": "Average", "label": "Disk %"}]
         ],
         "view": "timeSeries",
-        "region": "us-east-1",
+        "region": "${AWS_REGION}",
         "title": "Saturation (CPU / memory / disk)",
         "period": 60
       }
