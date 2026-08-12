@@ -1,3 +1,4 @@
+import logging
 import secrets
 import time
 import uuid
@@ -19,6 +20,9 @@ structlog.configure(
         structlog.processors.add_log_level,
         structlog.processors.JSONRenderer(),
     ],
+    wrapper_class=structlog.make_filtering_bound_logger(
+        logging.getLevelName(Config.LOG_LEVEL)
+    )
 )
 log = structlog.get_logger()
 
