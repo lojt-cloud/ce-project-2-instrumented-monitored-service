@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Local database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+app/logs/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# AWS
+.aws-sam/
