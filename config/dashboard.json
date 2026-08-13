@@ -42,7 +42,7 @@
       "type": "metric",
       "x": 18, "y": 0, "width": 6, "height": 6,
       "properties": {
-        "metrics": [["CWAgent", "cpu_usage_active", {"stat": "Average", "label": "CPU %"}]],
+        "metrics": [["CWAgent", "cpu_usage_active", "InstanceId", "${INSTANCE_ID}", "cpu", "cpu-total", {"stat": "Average", "label": "CPU %"}]],
         "view": "singleValue",
         "region": "${AWS_REGION}",
         "title": "CPU utilization",
@@ -54,11 +54,11 @@
       "x": 0, "y": 6, "width": 12, "height": 6,
       "properties": {
         "metrics": [
-          ["AuthService", "login_success_total", {"stat": "Sum", "label": "Success"}],
-          ["AuthService", "login_failed_total", {"stat": "Sum", "label": "Failed"}],
-          ["AuthService", "login_blocked_total", {"stat": "Sum", "label": "Blocked (locked)"}],
-          ["AuthService", "account_lockouts_total", {"stat": "Sum", "label": "New lockouts"}]
-        ],
+        ["AuthService", "login_success_total", {"stat": "Sum", "label": "Success", "color": "#2ca02c"}],
+        ["AuthService", "login_failed_total", {"stat": "Sum", "label": "Failed", "color": "#ff7f0e"}],
+        ["AuthService", "login_blocked_total", {"stat": "Sum", "label": "Blocked (locked)", "color": "#d62728"}],
+        ["AuthService", "account_lockouts_total", {"stat": "Sum", "label": "New lockouts", "color": "#000000"}]
+      ],
         "view": "timeSeries",
         "region": "${AWS_REGION}",
         "title": "Login outcomes",
@@ -71,9 +71,9 @@
       "x": 12, "y": 6, "width": 12, "height": 6,
       "properties": {
         "metrics": [
-          ["AuthService", "api_latency_ms", {"stat": "Average", "label": "Avg latency"}],
-          ["AuthService", "api_latency_ms", {"stat": "p95", "label": "P95 latency"}]
-        ],
+        ["AuthService", "api_latency_ms", {"stat": "p50", "label": "P50 latency"}],
+        ["AuthService", "api_latency_ms", {"stat": "p95", "label": "P95 latency"}]
+      ],
         "view": "timeSeries",
         "region": "${AWS_REGION}",
         "title": "Latency",
@@ -112,10 +112,10 @@
       "x": 0, "y": 18, "width": 24, "height": 6,
       "properties": {
         "metrics": [
-          ["CWAgent", "cpu_usage_active", {"stat": "Average", "label": "CPU %"}],
-          ["CWAgent", "mem_used_percent", {"stat": "Average", "label": "Memory %"}],
-          ["CWAgent", "disk_used_percent", {"stat": "Average", "label": "Disk %"}]
-        ],
+        ["CWAgent", "cpu_usage_active", "InstanceId", "${INSTANCE_ID}", "cpu", "cpu-total", {"stat": "Average", "label": "CPU %"}],
+        ["CWAgent", "mem_used_percent", "InstanceId", "${INSTANCE_ID}", {"stat": "Average", "label": "Memory %"}],
+        ["CWAgent", "disk_used_percent", "InstanceId", "${INSTANCE_ID}", "path", "/", "device", "nvme0n1p1", "fstype", "xfs", {"stat": "Average", "label": "Disk %"}]
+],
         "view": "timeSeries",
         "region": "${AWS_REGION}",
         "title": "Saturation (CPU / memory / disk)",
