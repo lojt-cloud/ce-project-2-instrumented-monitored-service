@@ -140,6 +140,7 @@ def login():
     if not user or not check_password(password, user["password_hash"]):
         register_failure(username)
         log.info("login_failed", username=username, ip=request.remote_addr)
+        put_metric("login_failed_total")
         return jsonify({"error": "invalid credentials"}), 401
 
     reset_failures(username)
