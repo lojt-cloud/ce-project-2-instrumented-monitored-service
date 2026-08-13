@@ -73,7 +73,7 @@ def register_failure(username):
             seconds=Config.LOCKOUT_DURATION_SECONDS
         )
         log.warning(
-            "account_locked", username=username, failed_attempts=state["failed_attempts"]
+            "account_locked", username=username, failed_attempts=state["failed_attempts"], ip=request.remote_addr
         )
         put_metric("account_lockouts_total")
 
@@ -132,15 +132,14 @@ def login():
         return jsonify({"error": "username and password are required"}), 400
 
     if is_locked(username):
-        log.warning("login_blocked_locked_account", username=username)
+        log.warning("login_blocked_locked_account", username=username, ip=request.remote_addr)
         put_metric("login_blocked_total")
         return jsonify({"error": "account is locked, try again later"}), 423
 
     user = users.get(username)
     if not user or not check_password(password, user["password_hash"]):
         register_failure(username)
-        log.info("login_failed", username=username)
-        put_metric("login_failed_total")
+        log.info("login_failed", username=username, ip=request.remote_addr)
         return jsonify({"error": "invalid credentials"}), 401
 
     reset_failures(username)
@@ -151,7 +150,7 @@ def login():
         + timedelta(seconds=Config.SESSION_TOKEN_TTL_SECONDS),
     }
 
-    log.info("login_success", username=username)
+    log.info("login_success", username=username, ip=request.remote_addr)
     put_metric("login_success_total")
     return jsonify({"token": token}), 200
 
