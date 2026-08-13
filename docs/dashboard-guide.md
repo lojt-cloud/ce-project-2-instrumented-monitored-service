@@ -4,12 +4,12 @@ This is a practical guide to reading `AuthServiceDashboard` in the moment, not w
 
 ## Quick triage
 
-Start with the top row. Four numbers, request rate, error rate, P95 latency, CPU utilization, designed to answer "Is anything wrong?" before looking at any trend line.
+Start with the top row. Four numbers, request rate, error rate, P95 latency, CPU utilization, designed to answer whether anything is wrong before looking at any trend line.
 
 If something looks off, drill into the matching time series below it to see when it started and whether it's still happening. Login outcomes and Latency sit next to each other for this purpose, so a spike in one can be checked against the other without switching views.
 
 Once the dashboard has pointed at what's wrong and roughly when, move to CloudWatch Logs Insights, filtering by correlation ID or username.
-The dashboard tells you something is wrong and when, the logs tell you exactly what (keep that in mind).
+The dashboard tells you something is wrong and when, the logs tell you exactly what.
 
 ## What normal looks like, widget by widget
 
