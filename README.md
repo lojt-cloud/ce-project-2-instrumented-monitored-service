@@ -1,6 +1,7 @@
 # ce-project-2-instrumented-monitored-service
 
-A user authentication service built with Flask, instrumented with structured logging, custom CloudWatch metrics, and CloudWatch alarms. It demonstrates observability practices, instrumentation, dashboards, alerting, and incident response, on a single EC2 instance.
+A user authentication service built with Flask, instrumented with structured logging, custom CloudWatch metrics, and CloudWatch alarms. 
+It demonstrates observability practices, instrumentation, dashboards, alerting, and incident response, on a single EC2 instance.
 
 ## What it does
 
