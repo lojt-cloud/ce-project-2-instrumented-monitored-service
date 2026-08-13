@@ -8,7 +8,8 @@ set -euo pipefail
 
 APP_DIR="/opt/auth-service"
 sudo mkdir -p "$APP_DIR"
-sudo cp -r ./app/* "$APP_DIR"
+sudo chown "$(whoami):$(whoami)" "$APP_DIR"
+cp -r ./app/* "$APP_DIR"
 cd "$APP_DIR"
 
 python3 -m venv venv
