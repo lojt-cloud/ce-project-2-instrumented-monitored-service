@@ -4,7 +4,8 @@ General operational troubleshooting for the service itself, not alarm response (
 
 ## App not responding
 
-Check the process is actually running: `ps aux | grep gunicorn`. Check the health endpoint: `curl http://localhost:8080/health`. If neither works, check `gunicorn-error.log` for a crash reason before restarting blind.
+Check the process is actually running: `ps aux | grep gunicorn`. Check the health endpoint: `curl http://localhost:8080/health`. 
+If neither works, check `gunicorn-error.log` for a crash reason before restarting blind.
 
 Restart: `sudo pkill -f gunicorn`, then `bash app/deploy.sh` from the repo root.
 

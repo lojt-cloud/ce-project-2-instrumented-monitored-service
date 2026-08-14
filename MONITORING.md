@@ -25,3 +25,7 @@ Latency: P50 and P95 plotted together rather than average and P95. Average is a 
 Error rate % over time and Authenticated requests: time-series versions of two of the top-row single values, for spotting trends rather than a single snapshot.
 
 Saturation: CPU, memory, and disk from the CloudWatch agent, plotted together since they represent instance-level resource pressure. Each metric is referenced with its exact published dimensions, InstanceId, and for CPU and disk, additional dimensions like cpu and device, since CloudWatch treats a metric name without dimensions as a different metric entirely from the same name with dimensions attached.
+
+## Screenshots
+
+`evidence/dashboard-screenshots/dashboard-bruteforce-window.png` shows the full dashboard during the incident window (see INCIDENTS.md), request rate, error rate, latency, and saturation all in one view.

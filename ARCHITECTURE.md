@@ -2,9 +2,15 @@
 
 ## Overview
 
-A single EC2 instance runs the Flask authentication service behind Gunicorn. The CloudWatch agent runs on the same instance, tailing the application's JSON log file and collecting OS-level metrics (CPU, memory, disk). 
-The application pushes custom metrics directly to CloudWatch through boto3. 
+A single EC2 instance runs the Flask authentication service behind Gunicorn. The CloudWatch agent runs on the same instance, tailing the application's JSON log file and collecting OS-level metrics (CPU, memory, disk).
+The application pushes custom metrics directly to CloudWatch through boto3.
 CloudWatch alarms evaluate those metrics and publish to an SNS topic, which sends an email notification.
+
+## Diagram
+
+![Architecture diagram](architecture-diagram.png)
+
+Client requests hit the Flask app on the EC2 instance. Each request writes a structured JSON log line to `server.log` and pushes custom metrics to CloudWatch through boto3. The CloudWatch agent tails `server.log` and ships entries to CloudWatch Logs, and separately publishes CPU, memory, and disk metrics. CloudWatch Metrics feeds both the dashboard and the alarms; alarms evaluate on a 1-minute schedule and notify an SNS topic on a breach, which emails the subscriber.
 
 ## Components
 
@@ -28,8 +34,8 @@ The project's scope is observability, not infrastructure complexity. One instanc
 
 ## State and persistence
 
-Users, sessions, and lockout state live in memory in the Flask process. This is a deliberate scope decision for a 3-day observability exercise, not an oversight. 
+Users, sessions, and lockout state live in memory in the Flask process. This is a deliberate scope decision for a 3-day observability exercise, not an oversight.
 A restart clears all state, which is fine for the demo and incident simulation, but would need to change, for example to DynamoDB or RDS, before this ran in production.
 
-This also constrains the app to a single Gunicorn worker. Each worker is a fully separate process with its own memory, so running more than one would mean each worker holding its own separate, inconsistent copy of the `users` and `sessions` dictionaries, a user registered on one worker could fail to be found on another. The tradeoff of a single worker is that requests are handled one at a time rather than in parallel, which shows up directly in the latency metrics under concurrent load. 
+This also constrains the app to a single Gunicorn worker. Each worker is a fully separate process with its own memory, so running more than one would mean each worker holding its own separate, inconsistent copy of the `users` and `sessions` dictionaries, a user registered on one worker could fail to be found on another. The tradeoff of a single worker is that requests are handled one at a time rather than in parallel, which shows up directly in the latency metrics under concurrent load.
 A production version would move this state to something external, at which point running multiple workers would be safe.

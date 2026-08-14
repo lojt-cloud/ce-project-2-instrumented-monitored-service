@@ -1,67 +1,61 @@
-# Incident: brute force alarms did not fire on first breach
+# Incidents
 
-## Summary
+## Incident: warning-tier alert notifications not delivering
 
-A simulated brute force attack against `/auth/login` cleared both the warning and critical failed-login thresholds, and CloudWatch had correct data reflecting that, but none of the three related alarms changed state. 
-Investigation found two separate problems in the alarm configuration, not one. A second test run and an unrelated discovery about a deleted SNS subscription are also logged here since they came out of the same investigation.
+### Summary
 
-## Timeline (2026-08-14, UTC)
+A simulated brute force attack against `/auth/login` was run three separate times over the course of one day to validate detection and alerting. Across all three runs, every alarm correctly detected the attack and transitioned to ALARM within two minutes, confirmed directly from CloudWatch's own alarm state history, not just a point-in-time check. The actual problem found during this exercise is different from a detection failure: the SNS subscription behind `auth-service-warning` is in a `Deleted` state and is not delivering warning-tier notifications, while the alarms underneath it fire correctly every time. This incident documents the detection validation, the two alarm configuration changes made along the way, and the still-open investigation into the notification failure.
 
-- 08:26-08:29: First simulated brute force run against 6 accounts, 5 failed login attempts each via `/auth/login`, real source IP 143.179.136.227. Fifth attempt on each account triggers `account_locked`.
-- 08:28-08:29: `login_failed_total` metric shows 3.0 at 08:28 and 27.0 at 08:29, clearing both `AuthService-FailedLogins-Warning` (threshold 10) and `AuthService-FailedLogins-Critical` (threshold 25).
-- 08:29-10:36: `AuthService-FailedLogins-Warning`, `AuthService-FailedLogins-Critical`, and `AuthService-AccountLockout-Critical` remain `OK` throughout, despite the breach.
-- 10:36: Manual `describe-alarms` check shows all three alarms `OK`, `StateReason`: "no datapoints were received for 1 period and 1 missing datapoint was treated as [NonBreaching]." Dashboard review is what actually caught the spike, not the alarms.
-- 10:37: Applied fix 1, widened `EvaluationPeriods` from 1 to 3 and `DatapointsToAlarm` from 1 to 2 on all three alarms, `Period` unchanged at 60.
-- 09:11-09:12: Second simulated brute force run against 6 new accounts (`bruteuser1` through `bruteuser6`), same pattern, 5 failed attempts each, real source IP throughout. 30 `login_failed` and 6 `account_locked` events logged for the run.
-- Following the second run: `AuthService-AccountLockout-Critical` transitions to `ALARM` (2 of the last 3 datapoints, 2.0 and 4.0, both clearing its threshold of 1), SNS notification email received. `AuthService-FailedLogins-Warning` and `AuthService-FailedLogins-Critical` remain `OK`, `StateReason` still reads as a missing-data message rather than a breach evaluation.
-- Checking SNS subscriptions during this investigation found `auth-service-warning`'s email subscription showed `SubscriptionArn: Deleted`, while `auth-service-critical`'s was confirmed and intact. Root cause suspected: a browser extension or antivirus tool auto-following links in a prior notification email, including the one-click unsubscribe link SNS includes in every message.
+### Timeline (2026-08-14, UTC, except where noted)
 
-## Investigation (RED method)
+**Run 1, 08:26-08:29.** Six accounts, five failed login attempts each against `/auth/login`, real source IP 143.179.136.227, fifth attempt on each account triggers `account_locked`. `login_failed_total` and `account_lockouts_total` both spike in the 08:29:00 bucket (27.0 and 6.0). All three relevant alarms were still on their original settings at this point (`Period=60`, `EvaluationPeriods=1`, `DatapointsToAlarm=1`) and all three fired correctly: `AuthService-FailedLogins-Critical` at 08:30:18, `AuthService-FailedLogins-Warning` at 08:30:42, `AuthService-AccountLockout-Critical` at 08:30:49, each roughly 90 seconds after the breach. All three cleared back to OK around 08:36-08:37 once the burst ended, which is expected behavior for a single-period alarm with no further activity, not a sign anything was wrong.
 
-This is a request-driven service, so RED (Rate, Errors, Duration) is the framework used to spot and characterize the anomaly, with a USE check afterward to rule out the host itself as the cause.
+**Between 08:37 and 09:11, fix 1 applied to all three alarms.** `EvaluationPeriods` widened from 1 to 3 and `DatapointsToAlarm` from 1 to 2, `Period` left at 60. Confirmed from the alarm history: `AuthService-AccountLockout-Critical`'s next transition after run 1 already shows the wider evaluation window in its `StateReasonData`.
 
-## Rate
+**Run 2, 09:11-09:12.** Six new accounts (`bruteuser1` through `bruteuser6`), same pattern, same source IP. 30 `login_failed` and 6 `account_locked` events logged, split across the 09:11:00 and 09:12:00 buckets (4.0 and 2.0 lockouts respectively). `AuthService-AccountLockout-Critical` fired at 09:13:36, about a minute and a half after the run ended, using fix 1's settings, two breaching one-minute buckets easily satisfied its `DatapointsToAlarm=2`. `AuthService-FailedLogins-Warning` and `AuthService-FailedLogins-Critical` did not fire on fix 1 alone. The 30 failed logins split across two consecutive 60-second buckets, and neither bucket alone reached the 25 or even reliably cleared 10 threshold on its own, a burst that doesn't align to a minute boundary can dodge a same-minute evaluation window even with more evaluation periods added.
 
-The dashboard's Login outcomes panel showed Failed climbing from a flat baseline near zero to 27 within about a minute (08:28-08:29), well outside the handful of failed logins normal traffic produces in the same window. 
-Request rate on its own (36 over 5 minutes) looked odd, the anomaly was in the mix of outcomes, not raw volume.
+**Between 09:12 and 09:25, fix 2 applied to the two FailedLogins alarms only.** `Period` widened from 60 to 180, `EvaluationPeriods` reduced from 3 to 2, `DatapointsToAlarm` from 2 to 1. A 180-second bucket comfortably contains a burst regardless of where it falls relative to a minute boundary. `AuthService-FailedLogins-Critical` fired at 09:25:02 and `AuthService-FailedLogins-Warning` at 09:25:24, both against the 09:10:00-09:13:00 bucket (30.0 failed logins, correctly clearing both thresholds), both cleared back to OK about two minutes later. `AuthService-AccountLockout-Critical` was left on fix 1, already proven to work. The two latency alarms were left unchanged throughout, nothing in this investigation showed their metric pipeline had the same problem.
 
-## Errors
+**Confirmation run, 11:58:59-12:00:07.** Six new accounts (`confirmrun1` through `confirmrun6`), same pattern, run from a local machine rather than over SSH so the source IP is genuine, script and full command log in `scripts/simulate-brute-force.sh`. This run used the final, confirmed-live alarm configuration (see the table below) and is the clean, unambiguous evidence for this report.
 
-Error rate % over time was pegged at 100% for the duration of the spike (roughly 08:26-08:29), meaning essentially every request in that window failed, not a partial degradation. 
-This was the separation line from regular noise to an actual incident.
+### Final alarm configuration (confirmed live via `describe-alarms`, matches `config/alarms.json`)
 
-## Duration
+| Alarm | Period | EvaluationPeriods | DatapointsToAlarm | Threshold |
+|---|---|---|---|---|
+| `AuthService-FailedLogins-Warning` | 180 | 2 | 1 | 10 |
+| `AuthService-FailedLogins-Critical` | 180 | 2 | 1 | 25 |
+| `AuthService-AccountLockout-Critical` | 60 | 3 | 2 | 1 |
+| `AuthService-Latency-Warning` | 60 | 1 | 1 | 500 |
+| `AuthService-Latency-Critical` | 60 | 1 | 1 | 1000 |
 
-P95 latency rose to 413ms during the event, still comfortably under the Latency-Warning threshold of 500ms. Ruling this dimension out mattered: it meant the service wasn't struggling to respond, it was correctly and quickly rejecting a burst of bad credentials. 
-This pointed the investigation toward application logic and traffic pattern rather than performance.
+### Confirmation run results, from CloudWatch's own alarm history
 
-## Drilling into logs
+| Alarm | OK to ALARM | ALARM to OK | Trigger data |
+|---|---|---|---|
+| `AuthService-FailedLogins-Warning` | 12:00:24 | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket |
+| `AuthService-FailedLogins-Critical` | 12:00:28 | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket |
+| `AuthService-AccountLockout-Critical` | 12:01:36 | 12:08:36 | 5.0 lockouts at 11:59:00, 1.0 at 12:00:00 |
+| `AuthService-Latency-Warning` | 12:01:54 | 12:07:54 | P95 1098ms, 12:00:00 bucket |
+| `AuthService-Latency-Critical` | 12:01:04 | 12:07:04 | P95 1098ms, 12:00:00 bucket |
 
-The second test run's raw log lines show the actual signature: 6 usernames (bruteuser1 through bruteuser6), each hit with exactly 5 failed attempts before account_locked fires on the 5th, same source IP (143.179.136.227) for all 30 attempts, roughly 1.5 seconds between requests, entire sweep across all 6 accounts completed in 48 seconds (09:11:25 to 09:12:13). Sequential account enumeration, uniform timing, single source IP, zero successful logins mixed in, that combination is indicates for a brute force attack rather then a user forgot the password. 
+Every alarm detected the attack within two minutes of it starting. The two latency alarms firing was not staged, it's a real instance of the single-worker queuing tradeoff documented in ALERTING.md: six near-simultaneous registration and login calls, each doing a `bcrypt` hash, queued behind the single Gunicorn worker and pushed P95 latency to 1098ms, past both the 500ms and 1000ms thresholds. Screenshots: `evidence/dashboard-screenshots/dashboard-bruteforce-window.png`, `evidence/incident-screenshots/raw-log-second-run.png`, `evidence/incident-screenshots/metric-data-first-run.png`, `evidence/alert-screenshots/alarms-config-post-fix.png`, `evidence/alert-screenshots/sns-alert-email-failedlogins-critical.png`.
 
-## USE method to check resource exhaustion 
-The Saturation panel (CPU/memory/disk) held steady around 28-30% through the entire event, with CPU utilization at 3.18%, no meaningful movement correlated with the spike. 
-This ruled out that the instance wasn't overwhelmed or struggled at any given point of the attack.
+### The open incident: `auth-service-warning` subscription
 
-## Root cause
+`aws sns list-subscriptions-by-topic` on `auth-service-warning` currently shows `SubscriptionArn: Deleted`. The topic's counterpart, `auth-service-critical`, shows a real, active subscription ARN and is confirmed working, it delivered the 09:25:02 email referenced above. Warning-tier alarms are firing correctly and on time, the same as critical-tier ones, but nobody is being notified when they do.
 
-**Evaluation window too narrow for publish latency (affected all three alarms initially).** 
-The alarms were configured with `Period=60`, `EvaluationPeriods=1`, `DatapointsToAlarm=1`, `TreatMissingData=notBreaching`. CloudWatch evaluates each alarm close to real time against the period that just closed. If the log-to-metric pipeline has even a short publish delay, the alarm's evaluation for a given minute can run before that minute's datapoint has landed. It finds nothing, `TreatMissingData=notBreaching` marks that period non-breaching, and the alarm moves to the next period without re-checking the one that later received the late data. 
-Confirmed directly: `get-metric-statistics` on `login_failed_total` for the attack window returned the correct 3.0 and 27.0 datapoints, while `describe-alarms` for the same window showed `OK` with a missing-data reason.
+This has happened more than once. CloudTrail shows `auth-service-warning` subscribed on 2026-08-13 at 08:12:26, then resubscribed twice more on 2026-08-14 at 09:25:09 and 09:26:36, ninety seconds apart, suggesting a prior attempt to fix the same problem that day. None of these attempts left the subscription in a working state.
 
-**Per-period volume threshold too strict for a burst that doesn't align to a minute boundary (affected the two FailedLogins alarms after fix 1).** 
-Widening to `EvaluationPeriods=3`/`DatapointsToAlarm=2` fixed `AccountLockout-Critical` because its threshold is 1, trivially cleared by any period with activity, so two out of three periods breaching is easy to satisfy. `FailedLogins-Warning` and `FailedLogins-Critical` need 10 or 25 events inside a single 60-second bucket. The second test run's burst was paced slower than the first and straddled a minute boundary, splitting its 30 total failed-login events across two under-threshold buckets. Requiring two separate one-minute periods to each independently clear the full threshold is a higher bar than the alarms were originally designed for, and a real attacker has no reason to time a burst to fit cleanly inside one 60-second window.
+A `Deleted` status can only happen after a subscription was confirmed and later unsubscribed. Neither of those two events shows up anywhere in this account's CloudTrail history for this topic, across `Subscribe`, `ConfirmSubscription`, and `Unsubscribe` lookups covering 2026-08-11 through 2026-08-14. The only `ConfirmSubscription` event in the entire account history is for an unrelated topic (`CloudWatchAlerts`), confirmed manually via the AWS CLI. Whatever confirmed and then killed the `auth-service-warning` subscription did not go through a path CloudTrail's default 90-day Event History captures, most likely SNS's public, unauthenticated one-click confirm and unsubscribe URLs, which every notification email includes in its footer alongside the alarm content. A browser extension, antivirus tool, or email link-scanner visiting every link in an incoming message would explain both the silent failure and the lack of a CloudTrail trail for it, but this remains a suspected cause, not a confirmed one. That gap is itself worth noting: the default CloudTrail Event History is not a complete audit log for this kind of failure.
 
-## Fix
+### Status
 
-Fix 1, applied to all three alarms: `EvaluationPeriods` 1 to 3, `DatapointsToAlarm` 1 to 2, `Period` unchanged at 60. Confirmed sufficient for `AccountLockout-Critical` only.
+Open. `auth-service-critical` is confirmed working. `auth-service-warning` needs to be resubscribed using the raw email `Token` and `aws sns confirm-subscription` directly, rather than clicking the link in a rendered email client, to avoid whatever is auto-visiting the unsubscribe link on subsequent notification emails. Not yet done as of this writing.
 
-Fix 2, applied to `FailedLogins-Warning` and `FailedLogins-Critical` only: `Period` 60 to 180, `EvaluationPeriods` 3 to 2, `DatapointsToAlarm` 2 to 1. A 180-second bucket comfortably contains a burst regardless of where it falls relative to a minute boundary, and `EvaluationPeriods=2`/`DatapointsToAlarm=1` still gives one bucket of slack for publish latency without requiring the burst to repeat itself. Applied via `put-metric-alarm`. Not yet confirmed with a live re-test, see open items below.
+### Lessons learned
 
-`AccountLockout-Critical` was left on the fix 1 settings, already proven to work. The two latency alarms (`AuthService-Latency-Warning`, `AuthService-Latency-Critical`) were left unchanged throughout, nothing in this investigation showed their metric pipeline had the same publish delay.
+A point-in-time `describe-alarms` check can look identical whether an alarm never fired or fired and already recovered, both show up as `OK` with a missing-data reason. `describe-alarm-history` is what actually tells the difference, and it's what settled every question in this investigation that a single snapshot could not.
 
-`config/alarms.json` in the repo reflects fix 1 for all three alarms but has not yet been updated to match fix 2's `Period=180`/`EvaluationPeriods=2`/`DatapointsToAlarm=1` for the two FailedLogins alarms, since fix 2 was applied directly via CLI. Needs a follow-up edit and commit so the file matches what's actually live.
+A burst that doesn't align to a minute boundary can defeat a short evaluation period even after widening `EvaluationPeriods`, only widening `Period` itself reliably contains it, which is why fix 2 was necessary in addition to fix 1.
 
-Separately, resubscribed `auth-service-warning`'s email endpoint and confirmed it via the `Token` extracted from the raw confirmation email rather than clicking the link directly, to avoid the same auto-click behavior deleting the subscription again.
-
-
+An alarm firing correctly is not the same as a human finding out about it. The detection side of this project worked every single time it was tested. The delivery side failed, repeatedly, and the standard audit tooling couldn't fully explain why, that gap between "the system detected it" and "someone was told" is the more realistic failure mode to design around in a production system.

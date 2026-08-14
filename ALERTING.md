@@ -16,8 +16,8 @@ Five alarms, tiered warning and critical, covering two signals: login failures, 
 
 `AuthService-Latency-Critical`, P95 above 1000ms.
 
-One caveat worth stating plainly: this app runs a single Gunicorn worker, a deliberate choice to keep the in-memory user and session state consistent (see ARCHITECTURE.md). 
-That means concurrent requests queue behind each other rather than processing in parallel, so a burst of simultaneous legitimate traffic can push P95 past even the critical threshold on its own, with nothing actually broken. 
+One caveat worth stating plainly: this app runs a single Gunicorn worker, a deliberate choice to keep the in-memory user and session state consistent (see ARCHITECTURE.md).
+That means concurrent requests queue behind each other rather than processing in parallel, so a burst of simultaneous legitimate traffic can push P95 past even the critical threshold on its own, with nothing actually broken.
 A latency alarm firing is a prompt to check the Saturation and Request rate panels for a concurrency spike before assuming something is wrong.
 
 ## SNS topic configuration
@@ -35,3 +35,9 @@ Two topics, `auth-service-warning` and `auth-service-critical`, each with a sing
 `AuthService-Latency-Warning`: check the Saturation panel for CPU pressure and the Request rate panel for a concurrency increase. Given the single-worker design, simultaneous requests alone can explain this without any actual defect.
 
 `AuthService-Latency-Critical`: same investigation, escalated. If it correlates with a concurrent traffic spike, it's the known single-worker capacity limit, not a bug, worth noting as such rather than treated as a mystery. If it fires with low concurrent volume, check `server.log` for `metric_push_failed` warnings, since a slow or throttled call to CloudWatch's own API would add real latency to every request.
+
+## Runbook: alarm configuration and notification incident
+
+Two rounds of tuning were needed on `AuthService-FailedLogins-Warning` and `AuthService-FailedLogins-Critical` before they reliably caught a brute-force burst that didn't align to a minute boundary, widening `EvaluationPeriods` alone wasn't enough, `Period` itself had to widen to 180 seconds. Separately, and still unresolved, the `auth-service-warning` SNS subscription keeps ending up in a `Deleted` state, so warning-tier alarms currently fire correctly but don't reach anyone. Full timeline, the alarm history evidence, and the open investigation are in INCIDENTS.md.
+
+`evidence/alert-screenshots/` has the alarm configuration after the fix and the SNS notification email.
