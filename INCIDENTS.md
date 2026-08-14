@@ -16,6 +16,33 @@ Investigation found two separate problems in the alarm configuration, not one. A
 - Following the second run: `AuthService-AccountLockout-Critical` transitions to `ALARM` (2 of the last 3 datapoints, 2.0 and 4.0, both clearing its threshold of 1), SNS notification email received. `AuthService-FailedLogins-Warning` and `AuthService-FailedLogins-Critical` remain `OK`, `StateReason` still reads as a missing-data message rather than a breach evaluation.
 - Checking SNS subscriptions during this investigation found `auth-service-warning`'s email subscription showed `SubscriptionArn: Deleted`, while `auth-service-critical`'s was confirmed and intact. Root cause suspected: a browser extension or antivirus tool auto-following links in a prior notification email, including the one-click unsubscribe link SNS includes in every message.
 
+## Investigation (RED method)
+
+This is a request-driven service, so RED (Rate, Errors, Duration) is the framework used to spot and characterize the anomaly, with a USE check afterward to rule out the host itself as the cause.
+
+## Rate
+
+The dashboard's Login outcomes panel showed Failed climbing from a flat baseline near zero to 27 within about a minute (08:28-08:29), well outside the handful of failed logins normal traffic produces in the same window. 
+Request rate on its own (36 over 5 minutes) looked odd, the anomaly was in the mix of outcomes, not raw volume.
+
+## Errors
+
+Error rate % over time was pegged at 100% for the duration of the spike (roughly 08:26-08:29), meaning essentially every request in that window failed, not a partial degradation. 
+This was the separation line from regular noise to an actual incident.
+
+## Duration
+
+P95 latency rose to 413ms during the event, still comfortably under the Latency-Warning threshold of 500ms. Ruling this dimension out mattered: it meant the service wasn't struggling to respond, it was correctly and quickly rejecting a burst of bad credentials. 
+This pointed the investigation toward application logic and traffic pattern rather than performance.
+
+## Drilling into logs
+
+The second test run's raw log lines show the actual signature: 6 usernames (bruteuser1 through bruteuser6), each hit with exactly 5 failed attempts before account_locked fires on the 5th, same source IP (143.179.136.227) for all 30 attempts, roughly 1.5 seconds between requests, entire sweep across all 6 accounts completed in 48 seconds (09:11:25 to 09:12:13). Sequential account enumeration, uniform timing, single source IP, zero successful logins mixed in, that combination is indicates for a brute force attack rather then a user forgot the password. 
+
+## USE method to check resource exhaustion 
+The Saturation panel (CPU/memory/disk) held steady around 28-30% through the entire event, with CPU utilization at 3.18%, no meaningful movement correlated with the spike. 
+This ruled out that the instance wasn't overwhelmed or struggled at any given point of the attack.
+
 ## Root cause
 
 **Evaluation window too narrow for publish latency (affected all three alarms initially).** 
@@ -36,4 +63,5 @@ Fix 2, applied to `FailedLogins-Warning` and `FailedLogins-Critical` only: `Peri
 `config/alarms.json` in the repo reflects fix 1 for all three alarms but has not yet been updated to match fix 2's `Period=180`/`EvaluationPeriods=2`/`DatapointsToAlarm=1` for the two FailedLogins alarms, since fix 2 was applied directly via CLI. Needs a follow-up edit and commit so the file matches what's actually live.
 
 Separately, resubscribed `auth-service-warning`'s email endpoint and confirmed it via the `Token` extracted from the raw confirmation email rather than clicking the link directly, to avoid the same auto-click behavior deleting the subscription again.
+
 
