@@ -55,12 +55,14 @@ def hash_password(password):
 def check_password(password, password_hash):
     return bcrypt.checkpw(password.encode("utf-8"), password_hash)
 
-
 def is_locked(username):
     state = login_state.get(username)
     if not state or not state.get("locked_until"):
         return False
-    return datetime.now(timezone.utc) < state["locked_until"]
+    if datetime.now(timezone.utc) < state["locked_until"]:
+        return True
+    login_state[username] = {"failed_attempts": 0, "locked_until": None}
+    return False
 
 
 def register_failure(username):
