@@ -55,12 +55,7 @@ Metrics side:
 1. Kick off a small amount of normal traffic first, so the dashboard has a calm baseline on screen before anything happens. If you don't already have a script for this, a quick loop works:
 
 ```bash
-for i in $(seq 1 15); do
-  curl -s -X POST "$BASE_URL/auth/login" \
-    -H 'Content-Type: application/json' \
-    -d '{"username":"demo_baseline","password":"RealPassword123!"}' > /dev/null
-  sleep 2
-done
+BASE_URL="http://<public-ip>:8080" ./scripts/simulate-normal-traffic.sh
 ```
 
 2. While that runs, give the dashboard a fast walkthrough: top row for at-a-glance status, Login outcomes and Latency underneath for the trend, Saturation at the bottom for the host itself. 
