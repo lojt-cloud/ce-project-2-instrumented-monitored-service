@@ -35,7 +35,7 @@
     "Statistic": "Sum",
     "Period": 60,
     "EvaluationPeriods": 3,
-    "DatapointsToAlarm": 2,
+    "DatapointsToAlarm": 1,
     "Threshold": 1,
     "ComparisonOperator": "GreaterThanOrEqualToThreshold",
     "TreatMissingData": "notBreaching",
