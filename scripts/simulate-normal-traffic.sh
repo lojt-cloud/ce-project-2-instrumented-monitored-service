@@ -27,9 +27,11 @@ curl -s -X POST "$BASE_URL/auth/register" \
   -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" > /dev/null
 
 for i in $(seq 1 "$NUM_REQUESTS"); do
-  curl -s -X POST "$BASE_URL/auth/login" \
+  TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
     -H 'Content-Type: application/json' \
-    -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" > /dev/null
+    -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" \
+    | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+  curl -s "$BASE_URL/auth/me" -H "Authorization: Bearer $TOKEN" > /dev/null
   sleep "$DELAY_SECONDS"
 done
 
