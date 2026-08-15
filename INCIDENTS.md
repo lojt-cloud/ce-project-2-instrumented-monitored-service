@@ -21,29 +21,30 @@ Raw log lines for this run: `evidence/incident-screenshots/raw-log-second-run.pn
 
 ### Final alarm configuration (confirmed live via `describe-alarms`, matches `config/alarms.json`)
 
-| Alarm | Period | EvaluationPeriods | DatapointsToAlarm | Threshold |
-|---|---|---|---|---|
-| `AuthService-FailedLogins-Warning` | 180 | 2 | 1 | 10 |
-| `AuthService-FailedLogins-Critical` | 180 | 2 | 1 | 25 |
-| `AuthService-AccountLockout-Critical` | 60 | 3 | 2 | 1 |
-| `AuthService-Latency-Warning` | 60 | 1 | 1 | 500 |
-| `AuthService-Latency-Critical` | 60 | 1 | 1 | 1000 |
+| Alarm                                 | Period | EvaluationPeriods | DatapointsToAlarm | Threshold |
+
+| `AuthService-FailedLogins-Warning`    | 180    | 2                 | 1                 | 10   |
+| `AuthService-FailedLogins-Critical`   | 180    | 2                 | 1                 | 25   |
+| `AuthService-AccountLockout-Critical` | 60     | 3                 | 2                 | 1    |
+| `AuthService-Latency-Warning`         | 60     | 1                 | 1                 |  500 |
+| `AuthService-Latency-Critical`        | 60     | 1                 | 1                 | 1000 |
 
 ### Confirmation run results, from CloudWatch's own alarm history
 
-| Alarm | OK to ALARM | ALARM to OK | Trigger data |
-|---|---|---|---|
-| `AuthService-FailedLogins-Warning` | 12:00:24 | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket |
-| `AuthService-FailedLogins-Critical` | 12:00:28 | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket |
-| `AuthService-AccountLockout-Critical` | 12:01:36 | 12:08:36 | 5.0 lockouts at 11:59:00, 1.0 at 12:00:00 |
-| `AuthService-Latency-Warning` | 12:01:45 | 12:07:54 | P95 1098ms, 12:00:00 bucket |
-| `AuthService-Latency-Critical` | 12:01:04 | 12:07:04 | P95 1098ms, 12:00:00 bucket |
+| Alarm                                 | OK to ALARM | ALARM to OK                  | Trigger data                              |
 
-Every alarm detected the attack within two minutes of it starting. The two latency alarms firing was not staged, it's a real instance of the single-worker queuing tradeoff documented in ALERTING.md: six near-simultaneous registration and login calls, each doing a `bcrypt` hash, queued behind the single Gunicorn worker and pushed P95 latency to 1098ms, past both the 500ms and 1000ms thresholds. Screenshots: `evidence/dashboard-screenshots/dashboard-bruteforce-window.png`, `evidence/incident-screenshots/raw-log-confirmation-run.png`, `evidence/incident-screenshots/alarm-history-confirmation-run.png`, `evidence/incident-screenshots/metric-data-first-run.png`, `evidence/alert-screenshots/alarms-config-post-fix.png`, `evidence/alert-screenshots/sns-alert-email-failedlogins-critical.png`. `dashboard-baseline-normal.png` in the same folder is the calm, before-attack counterpart to the bruteforce-window shot.
+| `AuthService-FailedLogins-Warning`    | 12:00:24    | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket       |
+| `AuthService-FailedLogins-Critical`   | 12:00:28    | still in ALARM at write time | 27.0 failed logins, 11:57:00 bucket       |
+| `AuthService-AccountLockout-Critical` | 12:01:36    | 12:08:36                     | 5.0 lockouts at 11:59:00, 1.0 at 12:00:00 |
+| `AuthService-Latency-Warning`         | 12:01:45    | 12:07:54                     | P95 1098ms, 12:00:00 bucket               |
+| `AuthService-Latency-Critical`        | 12:01:04    | 12:07:04                     | P95 1098ms, 12:00:00 bucket               |
+
+Every alarm detected the attack within two minutes of it starting. The two latency alarms firing was not staged, it's a real instance of the single-worker queuing tradeoff documented in ALERTING.md: six near-simultaneous registration and login calls, each doing a `bcrypt` hash, queued behind the single Gunicorn worker and pushed P95 latency to 1098ms, past both the 500ms and 1000ms thresholds. Screenshots: `evidence/dashboard-screenshots/dashboard-bruteforce-window.png`, `evidence/incident-screenshots/login-failed.png`, `evidence/incident-screenshots/alarm-state.png`, `evidence/incident-screenshots/metric-data-first-run.png`, `evidence/alert-screenshots/alarms-config-post-fix.png`, `evidence/alert-screenshots/email-alert.png`. `evidence/dashboard-screenshots/normal-traffic.png` is the calm, before-attack counterpart to the bruteforce-window shot.
 
 ### The open incident: `auth-service-warning` subscription
 
-`aws sns list-subscriptions-by-topic` on `auth-service-warning` currently shows `SubscriptionArn: Deleted`. The topic's counterpart, `auth-service-critical`, shows a real, active subscription ARN and is confirmed working, it delivered the 09:25:02 email referenced above. Warning-tier alarms are firing correctly and on time, the same as critical-tier ones, but nobody is being notified when they do. `evidence/alert-screenshots/sns-subscription-deleted.png` shows both subscriptions side by side, `Deleted` on the warning topic against a live ARN on the critical topic.
+`aws sns list-subscriptions-by-topic` on `auth-service-warning` currently shows `SubscriptionArn: Deleted`. The topic's counterpart, `auth-service-critical`, shows a real, active subscription ARN and is confirmed working, it delivered the 09:25:02 email referenced above. 
+Warning-tier alarms are firing correctly and on time, the same as critical-tier ones, but nobody is being notified when they do. `evidence/alert-screenshots/sns-subscription.png` shows both subscriptions side by side, `Deleted` on the warning topic against a live ARN on the critical topic. `evidence/alert-screenshots/sns-subscription-deleted.png` shows both subscriptions side by side, `Deleted` on the warning topic against a live ARN on the critical topic.
 This has happened more than once. CloudTrail shows `auth-service-warning` subscribed on 2026-08-13 at 08:12:26, then resubscribed twice more on 2026-08-14 at 09:25:09 and 09:26:36, ninety seconds apart, suggesting a prior attempt to fix the same problem that day. 
 None of these attempts left the subscription in a working state.
 

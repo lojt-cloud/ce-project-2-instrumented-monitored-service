@@ -28,4 +28,4 @@ Saturation: CPU, memory, and disk from the CloudWatch agent, plotted together si
 
 ## Screenshots
 
-`evidence/dashboard-screenshots/dashboard-bruteforce-window.png` shows the full dashboard during the incident window (see INCIDENTS.md), request rate, error rate, latency, and saturation all in one view.
+`evidence/dashboard-screenshots/dashboard-bruteforce-window.png` shows the full dashboard during the incident window (see INCIDENTS.md), request rate, error rate, latency, and saturation all in one view. `normal-traffic.png` in the same folder shows the same dashboard under calm, low-volume traffic, the before half of that comparison.

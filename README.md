@@ -71,7 +71,7 @@ Keep concurrency at 1 for a healthy baseline. Higher concurrency queues requests
 
 ## Screenshots
 
-`evidence/dashboard-screenshots/` has the dashboard during the incident window. `evidence/alert-screenshots/` has the alarm configuration and the SNS notification email. `evidence/incident-screenshots/` has the raw log evidence and metric data behind the root cause analysis in INCIDENTS.md. `architecture-diagram.png` at the repo root is referenced from ARCHITECTURE.md.
+`evidence/dashboard-screenshots/` has the dashboard during the incident window and a calm baseline for comparison. `evidence/alert-screenshots/` has the alarm configuration, the SNS notification email, and the warning-versus-critical subscription state behind the open incident in INCIDENTS.md. `evidence/incident-screenshots/` has the raw log evidence, metric data, and alarm history table behind the root cause analysis in INCIDENTS.md. `architecture-diagram.png` at the repo root is referenced from ARCHITECTURE.md.
 
 # Reflection
 

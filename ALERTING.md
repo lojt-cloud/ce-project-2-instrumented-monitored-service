@@ -39,5 +39,4 @@ Two topics, `auth-service-warning` and `auth-service-critical`, each with a sing
 ## Runbook: alarm configuration and notification incident
 
 Two rounds of tuning were needed on `AuthService-FailedLogins-Warning` and `AuthService-FailedLogins-Critical` before they reliably caught a brute-force burst that didn't align to a minute boundary, widening `EvaluationPeriods` alone wasn't enough, `Period` itself had to widen to 180 seconds. Separately, and still unresolved, the `auth-service-warning` SNS subscription keeps ending up in a `Deleted` state, so warning-tier alarms currently fire correctly but don't reach anyone. Full timeline, the alarm history evidence, and the open investigation are in INCIDENTS.md.
-
-`evidence/alert-screenshots/` has the alarm configuration after the fix and the SNS notification email.
+`evidence/alert-screenshots/` has the alarm configuration after the fix, the SNS notification email, and the subscription state showing the warning topic's `Deleted` subscription next to the critical topic's active one.

@@ -30,7 +30,8 @@ Client requests hit the Flask app on the EC2 instance. Each request writes a str
 
 ## Why a single EC2 instance
 
-The project's scope is observability, not infrastructure complexity. One instance keeps the deployment surface small and lets the CloudWatch agent handle both log shipping and OS metrics from a single place, without a load balancer, auto scaling group, or container orchestration the rubric doesn't call for.
+The project's scope is observability, not infrastructure complexity. One instance keeps the deployment surface small and lets the CloudWatch agent handle both log shipping and OS metrics from a single place, without a load balancer, auto scaling group, or container orchestration the rubric doesn't call for. `evidence/incident-screenshots/ec2-instance-details.png` shows the instance summary, a single t3.micro instance, matching that scope decision.
+
 
 ## State and persistence
 
