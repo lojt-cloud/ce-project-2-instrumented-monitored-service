@@ -50,7 +50,7 @@ Metrics side:
 
 ## Live demo
 
-[Terminal and dashboard both visible, dashboard on a fresh time range]
+Terminal and dashboard both visible, dashboard on a fresh time range. If AWS or the network acts up mid-demo, presentation/backup-screenshots/ has the dashboard, the SNS email, and both Log Analytics query results already captured, pull those up instead of troubleshooting live.
 
 1. Kick off a small amount of normal traffic first, so the dashboard has a calm baseline on screen before anything happens. If you don't already have a script for this, a quick loop works:
 
@@ -79,7 +79,8 @@ BASE_URL="http://<public-ip>:8080" ./scripts/simulate-brute-force.sh
 
 ## Incident response
 
-[Say the framing out loud before touching anything]: "I'm going to use RED to check whether this is a real failure or just noise, then USE to rule the host itself in or out."
+[Same fallback applies here, failed-login-log-analytics.png and time-diff-log-analytics.png in presentation/backup-screenshots/ are the exact query results below, already run.]
+[Say the framing out loud before touching anything]
 
 RED:
 
